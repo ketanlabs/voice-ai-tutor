@@ -1,0 +1,27 @@
+# Self-hosted LiveKit server config (used by the `livekit` compose service).
+# Dev-oriented: single node, Redis-backed, keys injected from .env via the
+# compose command (see docker-compose.yml). For LiveKit Cloud you don't need
+# this file at all — point LIVEKIT_URL at your cloud project instead.
+
+port: 7880
+
+rtc:
+  # TCP fallback port — lets WebRTC media work on a single machine / behind
+  # Docker without a fully open UDP range (the #1 self-host gotcha).
+  tcp_port: 7881
+  # UDP media port range (published by docker-compose).
+  port_range_start: 50000
+  port_range_end: 50019
+  # For localhost dev we advertise the loopback/host IP rather than a public
+  # one. If you deploy to a real host, set use_external_ip: true.
+  use_external_ip: false
+
+redis:
+  address: redis:6379
+
+# API keys/secrets are provided at runtime from environment variables
+# (LIVEKIT_API_KEY / LIVEKIT_API_SECRET) via the container command, so no
+# secrets live in this file. See docker-compose.yml `livekit.command`.
+
+logging:
+  level: info

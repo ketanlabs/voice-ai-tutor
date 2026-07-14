@@ -1,0 +1,41 @@
+# Picture-pronunciation exercise — authored ONCE in English.
+# Items play top-to-bottom (order = sequence). Reorder lines to change the order;
+# add/remove entries freely. The coach translates `prompt` to the chosen language
+# (Spanish/French/Italian) at runtime, so this single file drives all three.
+#
+# Fields:
+#   prompt : English word OR short sentence (required)
+#   image  : path to a file in frontend/public/flashcards/ (optional)
+#   emoji  : fallback shown if the image is missing/broken (optional)
+items:
+  - prompt: "apple"
+    image: /flashcards/apple.jpg
+    emoji: "🍎"
+  - prompt: "orange"
+    image: /flashcards/orange.jpg
+    emoji: "🍊"
+  - prompt: "banana"
+    image: /flashcards/banana.jpg
+    emoji: "🍌"
+  - prompt: "bread"
+    image: /flashcards/bread.jpg
+    emoji: "🍞"
+  - prompt: "water"
+    image: /flashcards/water.jpg
+    emoji: "💧"
+  - prompt: "cat"
+    image: /flashcards/cat.jpg
+    emoji: "🐱"
+  - prompt: "dog"
+    image: /flashcards/dog.jpg
+    emoji: "🐶"
+  - prompt: "house"
+    image: /flashcards/house.jpg
+    emoji: "🏠"
+  # --- short sentences (pronounce the whole phrase) ---
+  - prompt: "I eat an apple."
+    image: /flashcards/apple.jpg
+    emoji: "🍎"
+  - prompt: "The cat is black."
+    image: /flashcards/cat.jpg
+    emoji: "🐱"
