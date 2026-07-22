@@ -18,6 +18,7 @@ venv/
 node_modules/
 .next/
 out/
+*.tsbuildinfo
 .pnpm-store/
 npm-debug.log*
 pnpm-debug.log*

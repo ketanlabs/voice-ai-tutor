@@ -54,3 +54,49 @@ def test_pronunciation_attempt_flow(client):
     assert r.status_code == 200
     items = client.get(f"/learners/{lid}/review-items", params={"n": 5}).json()["items"]
     assert "pomme" in [i["word"] for i in items]
+
+
+def test_progress_report(client, exercise):
+    # Curriculum-driven progress: one row per exercise item, joined with practice.
+    lid = "ana:es"
+    client.post("/session/token", json={"handle": "ana", "language": "es"})
+
+    prompts = [it.prompt for it in exercise]
+    correct_prompt, wrong_prompt, untouched_prompt = prompts[0], prompts[1], prompts[2]
+
+    # One word passed (correct), one attempted-but-wrong, a third left untouched.
+    client.post(
+        f"/learners/{lid}/attempt",
+        json={"word": correct_prompt, "translation": "manzana", "correct": True},
+    )
+    client.post(
+        f"/learners/{lid}/attempt",
+        json={"word": wrong_prompt, "translation": "naranja", "correct": False},
+    )
+
+    body = client.get(f"/learners/{lid}/progress").json()
+    assert body["language"] == "es"
+    assert body["profile"]["target_lang"] == "es"
+
+    # All curriculum items present, one row each.
+    assert len(body["items"]) == len(exercise)
+    by_prompt = {row["prompt"]: row for row in body["items"]}
+    assert set(by_prompt) == set(prompts)
+
+    # Correct word: passed, translation captured.
+    assert by_prompt[correct_prompt]["passed"] is True
+    assert by_prompt[correct_prompt]["correct"] >= 1
+    assert by_prompt[correct_prompt]["word"] == "manzana"
+
+    # Wrong-only word: seen but not passed.
+    assert by_prompt[wrong_prompt]["passed"] is False
+    assert by_prompt[wrong_prompt]["seen"] >= 1
+    assert by_prompt[wrong_prompt]["correct"] == 0
+
+    # Untouched word: all zeros, blank translation.
+    assert by_prompt[untouched_prompt] == {
+        "prompt": untouched_prompt, "word": "", "seen": 0, "correct": 0, "passed": False,
+    }
+
+    # Mastery score = distinct words passed / total curriculum items.
+    assert body["score"] == {"passed": 1, "total": len(exercise)}

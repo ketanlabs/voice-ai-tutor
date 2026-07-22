@@ -92,3 +92,35 @@ class AttemptResult(BaseModel):
 
 class ReviewItems(BaseModel):
     items: list[VocabItem]
+
+
+# --------------------------------------------------------- progress report ----
+class WordProgress(BaseModel):
+    """One curriculum item joined with the learner's practice record.
+
+    `prompt` is the canonical English prompt (from the curriculum); `word` is the
+    target-language translation the learner practiced (blank until practiced).
+    `passed` is mastery, not accuracy — true once the word has been correct at
+    least once.
+    """
+
+    prompt: str                 # English prompt (from the curriculum)
+    word: str = ""              # target-language translation, "" if never practiced
+    seen: int = 0
+    correct: int = 0
+    passed: bool = False        # ever correct at least once (correct >= 1)
+
+
+class ProgressScore(BaseModel):
+    """Mastery over the whole curriculum: distinct words passed / total items."""
+
+    passed: int                 # curriculum words with correct >= 1
+    total: int                  # total curriculum items
+
+
+class LearnerProgress(BaseModel):
+    identity: str
+    language: Language
+    profile: Profile
+    items: list[WordProgress]
+    score: ProgressScore

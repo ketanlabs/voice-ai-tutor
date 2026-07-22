@@ -29,6 +29,14 @@ export default function Landing() {
     router.push("/practice");
   }
 
+  function viewHistory() {
+    // Carry over a name typed but not yet "started" so history can reuse it.
+    const h = handle.trim();
+    if (h) window.localStorage.setItem(HANDLE_KEY, h);
+    window.localStorage.setItem(LANG_KEY, language);
+    router.push("/history");
+  }
+
   const ready = handle.trim().length > 0;
 
   return (
@@ -73,7 +81,13 @@ export default function Landing() {
           Start practicing
         </button>
 
-        <p className="muted" style={{ marginTop: 14, fontSize: 12 }}>
+        <p className="muted" style={{ marginTop: 14, fontSize: 13 }}>
+          <a onClick={viewHistory} style={{ cursor: "pointer" }}>
+            View history →
+          </a>
+        </p>
+
+        <p className="muted" style={{ marginTop: 4, fontSize: 12 }}>
           Progress is saved per name and language — come back to pick up where you left off.
         </p>
       </div>
