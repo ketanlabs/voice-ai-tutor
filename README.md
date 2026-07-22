@@ -11,6 +11,8 @@ Built on [LiveKit](https://livekit.io) for low-latency, interruptible voice.
 **The flow:** picture → hear the word/sentence in your language → repeat it →
 👍/👎 → next. Progress is remembered **per language**, so you pick up where you left
 off (and the words you struggle with come back around via spaced repetition).
+For the engineering-level flow (components, sequence diagram, data model, wire
+protocols), see [`architecture.md`](./architecture.md).
 
 > **Video walkthrough:** _<add link here>_ — a ≤1-minute demo: enter a name, pick a
 > language, and do a few pronunciation cards.
@@ -68,10 +70,27 @@ voice and frontend are stateless clients.
 | **Voice/AI layer** | `voice/…/pipeline.py` | STT · LLM · TTS · VAD · turn-detection wiring and provider selection. |
 | **Presentation** | `frontend/` (Next.js) | Connect screen, the flashcard exercise view, transcript, audio visualizer. No secrets, no state. |
 
-**How it flows:** the browser asks the backend for a token (identity = your handle,
-namespaced per language) → connects to LiveKit → the voice worker joins, loads the
-exercise list, greets you, and runs the picture-pronunciation loop — pushing each
-image + 👍/👎 to the browser over the data channel and recording results in Redis.
+**How it flows:**
+
+1. The browser asks the **backend** for a LiveKit token
+   (`POST /session/token`). Identity = your **handle**; memory is namespaced per
+   language (`{handle}:{lang}`), carried in the token metadata.
+2. The browser connects to **LiveKit** with that token and publishes its (muted,
+   push-to-talk) mic.
+3. LiveKit dispatches a job to the **voice worker**, which reads the language +
+   learner id, then pulls the **exercise list** and the learner's **weak/overdue
+   words** from the backend — floating those weak words to the front
+   (spaced repetition).
+4. The coach greets you by name and runs the picture-pronunciation loop via three
+   tools — `show_item` → say it → `score_item` (👍/👎) → next → `finish_exercise` —
+   pushing each image + result to the browser over the **`tutor-ui` data channel**.
+5. Each attempt is recorded in **Redis** through the backend
+   (`POST …/attempt`), updating the spaced-repetition schedule; a session summary
+   is saved on disconnect — so next time the words you struggled with come back
+   first.
+
+See [`architecture.md`](./architecture.md#2-end-to-end-runtime-flow) for the full
+sequence diagram and the exact tool/event/endpoint contracts.
 
 ### Tech stack
 - **Backend:** Python 3.13, FastAPI, `redis`, `pydantic`, `livekit-api`.
@@ -244,5 +263,5 @@ voice/      LiveKit agent worker: pipeline.py (AI layer) + tutor.py (coach)
 frontend/   Next.js UI: connect screen, flashcard exercise, transcript, visualizer
   public/flashcards/         the picture assets
 livekit/    self-hosted server config
-docker-compose.yml · Makefile · .env.example · PROMPT.md · workflow.md
+docker-compose.yml · Makefile · .env.example · architecture.md · PROMPT.md · workflow.md
 ```

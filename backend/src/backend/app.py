@@ -18,15 +18,19 @@ from . import tokens
 from .config import Settings, get_settings
 from .curriculum import load_exercise
 from .models import (
+    LANGUAGES,
     AttemptResult,
     ExerciseItem,
+    LearnerProgress,
     LearnerSnapshot,
+    ProgressScore,
     ReviewItems,
     SessionSummary,
     TokenRequest,
     TokenResponse,
     VocabCreate,
     VocabItem,
+    WordProgress,
 )
 from .store import Store
 
@@ -120,6 +124,47 @@ def create_app(
     @app.get("/learners/{identity}", response_model=LearnerSnapshot)
     async def get_snapshot(identity: str, store: Store = Depends(get_store)):
         return await store.get_or_create_learner(identity)
+
+    # ---- learner progress (curriculum joined with practice) -----------------
+    @app.get("/learners/{identity}/progress", response_model=LearnerProgress)
+    async def get_progress(
+        identity: str, request: Request, store: Store = Depends(get_store)
+    ):
+        """Report progress by joining the curriculum (canonical English prompts)
+        with the learner's practiced vocab + profile. One row per curriculum item;
+        never-practiced words show zeros. `passed` is mastery (correct >= 1)."""
+        snapshot = await store.get_or_create_learner(identity)
+        vocab = {v.word: v for v in await store.get_vocab(identity)}
+        exercise: list[ExerciseItem] = request.app.state.exercise
+
+        # Language comes from the per-language identity ({handle}:{lang}); fall
+        # back to the profile if the identity isn't namespaced.
+        lang = identity.rsplit(":", 1)[-1]
+        if lang not in LANGUAGES:
+            lang = snapshot.profile.target_lang
+
+        items: list[WordProgress] = []
+        passed = 0
+        for ex in exercise:
+            v = vocab.get(ex.prompt)
+            is_passed = bool(v and v.correct >= 1)
+            passed += 1 if is_passed else 0
+            items.append(
+                WordProgress(
+                    prompt=ex.prompt,
+                    word=(v.translation if v else ""),
+                    seen=(v.seen if v else 0),
+                    correct=(v.correct if v else 0),
+                    passed=is_passed,
+                )
+            )
+        return LearnerProgress(
+            identity=identity,
+            language=lang,  # type: ignore[arg-type]
+            profile=snapshot.profile,
+            items=items,
+            score=ProgressScore(passed=passed, total=len(exercise)),
+        )
 
     # ---- vocab / SRS (each practiced prompt is an SRS item) -----------------
     @app.post("/learners/{identity}/vocab", response_model=VocabItem)
